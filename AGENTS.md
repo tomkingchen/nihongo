@@ -16,8 +16,14 @@ Dexie schema lives in `src/db/schema.ts`.
   intentional so native Japanese TTS handles context-dependent particles (は→"wa", を→"o") correctly.
   See `src/lib/tts.ts`.
 - Sentences have no `romaji` field (only vocab needs one, as a typing reference) — don't add it back.
-- AI-assisted lookup, Settings screen, API key handling, and JSON export/import are deliberately out
-  of scope for the current version — a known follow-up, not an oversight.
+- The Anthropic API key and `ja-JP` voice preference (`src/lib/settings.ts`) live only in
+  `localStorage` — never sent anywhere but directly to Anthropic's API from the browser, and never
+  persisted to IndexedDB. `src/lib/aiLookup.ts` calls the Messages API directly via `fetch` (not the
+  `@anthropic-ai/sdk` package) with `anthropic-dangerous-direct-browser-access: true`, using forced
+  tool-use for structured JSON output. Consult the `claude-api` skill before changing the model id,
+  request shape, or pricing assumptions there — don't rely on training-data memory for those.
+- JSON export/import (`src/db/exportImport.ts`) is additive on import — it never clears existing
+  `vocab`/`sentences` rows first.
 
 ## Maintaining this file
 

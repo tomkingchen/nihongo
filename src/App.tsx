@@ -11,6 +11,7 @@ export default function App() {
         <NavLink to="/sentences">Sentences</NavLink>
         <NavLink to="/sentences/add">Add Sentence</NavLink>
         <NavLink to="/review">Review</NavLink>
+        <NavLink to="/settings">Settings</NavLink>
       </nav>
       <div className="container">
         <AppRoutes />

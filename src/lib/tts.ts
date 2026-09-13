@@ -1,16 +1,13 @@
-let cachedJaVoice: SpeechSynthesisVoice | null | undefined
+import { getVoiceURI } from './settings'
 
 function pickJapaneseVoice(): SpeechSynthesisVoice | null {
-  if (cachedJaVoice !== undefined) return cachedJaVoice
   const voices = window.speechSynthesis.getVoices()
-  cachedJaVoice = voices.find((v) => v.lang === 'ja-JP') ?? voices.find((v) => v.lang.startsWith('ja')) ?? null
-  return cachedJaVoice
-}
-
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    cachedJaVoice = undefined
+  const preferredURI = getVoiceURI()
+  if (preferredURI) {
+    const preferred = voices.find((v) => v.voiceURI === preferredURI)
+    if (preferred) return preferred
   }
+  return voices.find((v) => v.lang === 'ja-JP') ?? voices.find((v) => v.lang.startsWith('ja')) ?? null
 }
 
 export function speak(text: string) {

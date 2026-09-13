@@ -5,6 +5,7 @@ import VocabListPage from './features/vocab/VocabListPage'
 import AddSentencePage from './features/sentences/AddSentencePage'
 import SentenceListPage from './features/sentences/SentenceListPage'
 import ReviewPage from './features/review/ReviewPage'
+import SettingsPage from './features/settings/SettingsPage'
 
 export default function AppRoutes() {
   return (
@@ -15,6 +16,7 @@ export default function AppRoutes() {
       <Route path="/sentences" element={<SentenceListPage />} />
       <Route path="/sentences/add" element={<AddSentencePage />} />
       <Route path="/review" element={<ReviewPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
     </Routes>
   )
 }
