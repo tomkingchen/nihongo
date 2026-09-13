@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, Link } from 'react-router'
 import { TextField } from '../../components/TextField'
 import { addVocab } from '../../db/vocab'
+import { AiLookupError, lookupJapanese } from '../../lib/aiLookup'
+import { getApiKey } from '../../lib/settings'
 
 export default function AddVocabPage() {
   const navigate = useNavigate()
@@ -12,6 +14,26 @@ export default function AddVocabPage() {
   const [chinese, setChinese] = useState('')
   const [tags, setTags] = useState('')
   const [saving, setSaving] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState<string | null>(null)
+  const hasApiKey = !!getApiKey()
+
+  async function handleSuggest() {
+    if (!written.trim()) return
+    setSuggesting(true)
+    setSuggestError(null)
+    try {
+      const result = await lookupJapanese(written.trim(), 'vocab')
+      setReading(result.reading)
+      setRomaji(result.romaji ?? '')
+      setEnglish(result.english)
+      setChinese(result.chinese)
+    } catch (err) {
+      setSuggestError(err instanceof AiLookupError ? err.message : 'Suggestion failed. Fill in fields manually.')
+    } finally {
+      setSuggesting(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -36,6 +58,18 @@ export default function AddVocabPage() {
       <h1>Add Vocab</h1>
       <form className="card" onSubmit={handleSubmit}>
         <TextField label="Written" value={written} onChange={setWritten} required placeholder="立派" />
+        {hasApiKey ? (
+          <p>
+            <button type="button" onClick={handleSuggest} disabled={suggesting || !written.trim()}>
+              {suggesting ? 'Suggesting…' : 'Suggest'}
+            </button>
+          </p>
+        ) : (
+          <p>
+            <Link to="/settings">Add an API key in Settings</Link> to enable AI-assisted suggestions.
+          </p>
+        )}
+        {suggestError && <p style={{ color: 'crimson' }}>{suggestError}</p>}
         <TextField label="Reading (hiragana)" value={reading} onChange={setReading} required placeholder="りっぱ" />
         <TextField label="Romaji" value={romaji} onChange={setRomaji} placeholder="rippa" />
         <TextField label="English" value={english} onChange={setEnglish} placeholder="splendid" />

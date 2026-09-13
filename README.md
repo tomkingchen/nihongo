@@ -17,9 +17,16 @@ be deployed as a static site.
 - **Flashcard Review** — pick a deck (vocab only / sentences only / both), optionally shuffle, and
   flip through cards with next/prev navigation and a progress indicator. No spaced repetition in
   this version — just linear or shuffled browsing.
-- **Audio** — play buttons use the browser's built-in `speechSynthesis` API with a `ja-JP` voice,
-  speaking the written form directly (so context-dependent particles like は/を are pronounced
-  correctly).
+- **Audio** — play buttons use the browser's built-in `speechSynthesis` API with a `ja-JP` voice
+  (pick which installed voice to use in Settings), speaking the written form directly (so
+  context-dependent particles like は/を are pronounced correctly).
+- **AI-assisted lookup** — a "Suggest" button on the Add Vocab / Add Sentence pages calls the
+  Anthropic API directly from the browser (using an API key you supply in Settings) to draft the
+  hiragana reading, romaji (vocab only), English, and Chinese fields — always editable before Save,
+  never auto-saved.
+- **Settings** (`/settings`) — Anthropic API key (saved only in this browser's `localStorage`, sent
+  only to Anthropic — see the note in-app about single-user use), `ja-JP` voice picker, and JSON
+  export/import of all vocab and sentence entries.
 
 ## Getting started
 
@@ -44,7 +51,3 @@ npm run preview    # preview the production build locally
 - react-router for navigation
 - Dexie (IndexedDB) for persistence
 
-## Out of scope (for now)
-
-AI-assisted lookup/suggestion of readings or translations, a Settings screen, API key handling, and
-JSON export/import are deliberately not part of this version — planned as follow-up work.
