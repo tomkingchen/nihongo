@@ -1,6 +1,24 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { exportData, importData } from '../../db/exportImport'
-import { getApiKey, getVoiceURI, setApiKey, setVoiceURI } from '../../lib/settings'
+import {
+  DEFAULT_VOICEVOX_BASE_URL,
+  DEFAULT_VOICEVOX_SPEAKER_ID,
+  getApiKey,
+  getTtsEngine,
+  getVoiceURI,
+  getVoicevoxBaseUrl,
+  getVoicevoxSpeakerId,
+  setApiKey,
+  setTtsEngine,
+  setVoiceURI,
+  setVoicevoxBaseUrl,
+  setVoicevoxSpeakerId,
+  type TtsEngine,
+} from '../../lib/settings'
+import { speakWithVoicevox } from '../../lib/tts'
+import { fetchVoicevoxSpeakers, VoicevoxError, type VoicevoxSpeaker } from '../../lib/voicevox'
+
+type TestState = { status: 'idle' } | { status: 'testing' } | { status: 'success' } | { status: 'error'; message: string }
 
 export default function SettingsPage() {
   const [apiKeyInput, setApiKeyInput] = useState(() => getApiKey() ?? '')
@@ -9,6 +27,13 @@ export default function SettingsPage() {
   const [voiceURI, setVoiceURIState] = useState(() => getVoiceURI() ?? '')
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+
+  const [ttsEngine, setTtsEngineState] = useState<TtsEngine>(() => getTtsEngine())
+  const [voicevoxBaseUrl, setVoicevoxBaseUrlState] = useState(() => getVoicevoxBaseUrl())
+  const [voicevoxSpeakerId, setVoicevoxSpeakerIdState] = useState(() => getVoicevoxSpeakerId())
+  const [voicevoxSpeakers, setVoicevoxSpeakers] = useState<VoicevoxSpeaker[]>([])
+  const [voicevoxSpeakersError, setVoicevoxSpeakersError] = useState<string | null>(null)
+  const [voicevoxTest, setVoicevoxTest] = useState<TestState>({ status: 'idle' })
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
@@ -21,6 +46,59 @@ export default function SettingsPage() {
       window.speechSynthesis.onvoiceschanged = null
     }
   }, [])
+
+  useEffect(() => {
+    if (ttsEngine !== 'voicevox') return
+    let cancelled = false
+    setVoicevoxSpeakersError(null)
+    fetchVoicevoxSpeakers(voicevoxBaseUrl)
+      .then((speakers) => {
+        if (cancelled) return
+        setVoicevoxSpeakers(speakers)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setVoicevoxSpeakers([])
+        setVoicevoxSpeakersError(
+          err instanceof VoicevoxError
+            ? err.message
+            : 'Failed to load speaker list. Using default speaker id.',
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [ttsEngine, voicevoxBaseUrl])
+
+  function handleEngineChange(engine: TtsEngine) {
+    setTtsEngineState(engine)
+    setTtsEngine(engine)
+    setVoicevoxTest({ status: 'idle' })
+  }
+
+  function handleVoicevoxBaseUrlChange(url: string) {
+    setVoicevoxBaseUrlState(url)
+    setVoicevoxBaseUrl(url)
+    setVoicevoxTest({ status: 'idle' })
+  }
+
+  function handleVoicevoxSpeakerChange(id: number) {
+    setVoicevoxSpeakerIdState(id)
+    setVoicevoxSpeakerId(id)
+  }
+
+  async function handleVoicevoxTest() {
+    setVoicevoxTest({ status: 'testing' })
+    try {
+      await speakWithVoicevox('こんにちは', voicevoxBaseUrl || DEFAULT_VOICEVOX_BASE_URL, voicevoxSpeakerId)
+      setVoicevoxTest({ status: 'success' })
+    } catch (err) {
+      setVoicevoxTest({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Failed to play test audio.',
+      })
+    }
+  }
 
   function handleSaveApiKey() {
     setApiKey(apiKeyInput.trim())
@@ -83,21 +161,96 @@ export default function SettingsPage() {
       </section>
 
       <section className="card">
-        <h2>Voice</h2>
-        {voices.length === 0 ? (
-          <p>No Japanese voices found in this browser. Play buttons will fall back to the system default.</p>
-        ) : (
-          <div className="form-field">
-            <label>ja-JP voice</label>
-            <select value={voiceURI} onChange={(e) => handleVoiceChange(e.target.value)}>
-              <option value="">Default</option>
-              {voices.map((v) => (
-                <option key={v.voiceURI} value={v.voiceURI}>
-                  {v.name} ({v.lang})
-                </option>
-              ))}
-            </select>
-          </div>
+        <h2>Voice engine</h2>
+        <div className="form-field">
+          <label>
+            <input
+              type="radio"
+              name="ttsEngine"
+              checked={ttsEngine === 'browser'}
+              onChange={() => handleEngineChange('browser')}
+            />{' '}
+            Browser (default)
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="ttsEngine"
+              checked={ttsEngine === 'voicevox'}
+              onChange={() => handleEngineChange('voicevox')}
+            />{' '}
+            VOICEVOX (local)
+          </label>
+        </div>
+
+        {ttsEngine === 'browser' &&
+          (voices.length === 0 ? (
+            <p>No Japanese voices found in this browser. Play buttons will fall back to the system default.</p>
+          ) : (
+            <div className="form-field">
+              <label>ja-JP voice</label>
+              <select value={voiceURI} onChange={(e) => handleVoiceChange(e.target.value)}>
+                <option value="">Default</option>
+                {voices.map((v) => (
+                  <option key={v.voiceURI} value={v.voiceURI}>
+                    {v.name} ({v.lang})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+        {ttsEngine === 'voicevox' && (
+          <>
+            <p>
+              Requires the VOICEVOX engine running locally — see the README's "Better audio with VOICEVOX"
+              section for setup and the CORS flag needed for this page to reach it.
+            </p>
+            <div className="form-field">
+              <label>Engine base URL</label>
+              <input
+                type="text"
+                value={voicevoxBaseUrl}
+                onChange={(e) => handleVoicevoxBaseUrlChange(e.target.value)}
+                placeholder={DEFAULT_VOICEVOX_BASE_URL}
+              />
+            </div>
+            <div className="form-field">
+              <label>Speaker</label>
+              {voicevoxSpeakers.length === 0 ? (
+                <input
+                  type="number"
+                  value={voicevoxSpeakerId}
+                  onChange={(e) => handleVoicevoxSpeakerChange(Number(e.target.value) || DEFAULT_VOICEVOX_SPEAKER_ID)}
+                />
+              ) : (
+                <select
+                  value={voicevoxSpeakerId}
+                  onChange={(e) => handleVoicevoxSpeakerChange(Number(e.target.value))}
+                >
+                  {voicevoxSpeakers.flatMap((speaker) =>
+                    speaker.styles.map((style) => (
+                      <option key={style.id} value={style.id}>
+                        {speaker.name} - {style.name}
+                      </option>
+                    )),
+                  )}
+                </select>
+              )}
+            </div>
+            {voicevoxSpeakersError && (
+              <p style={{ color: 'crimson' }}>
+                {voicevoxSpeakersError} Falling back to speaker id {DEFAULT_VOICEVOX_SPEAKER_ID}.
+              </p>
+            )}
+            <button type="button" onClick={() => void handleVoicevoxTest()} disabled={voicevoxTest.status === 'testing'}>
+              {voicevoxTest.status === 'testing' ? 'Testing…' : 'Test'}
+            </button>
+            {voicevoxTest.status === 'success' && <span> ✓ Played successfully.</span>}
+            {voicevoxTest.status === 'error' && (
+              <p style={{ color: 'crimson' }}>{voicevoxTest.message}</p>
+            )}
+          </>
         )}
       </section>
 
