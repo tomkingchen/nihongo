@@ -12,9 +12,14 @@ Dexie schema lives in `src/db/schema.ts`.
 
 ## Sharp edges
 
-- Play buttons speak the `written` form (not the hiragana `reading`) via `speechSynthesis` — this is
-  intentional so native Japanese TTS handles context-dependent particles (は→"wa", を→"o") correctly.
-  See `src/lib/tts.ts`.
+- Play buttons speak the `written` form (not the hiragana `reading`) — this is intentional so native
+  Japanese TTS handles context-dependent particles (は→"wa", を→"o") correctly. See `src/lib/tts.ts`,
+  which dispatches to either browser `speechSynthesis` or a locally-run VOICEVOX engine
+  (`src/lib/voicevox.ts`) per the engine choice in `src/lib/settings.ts`. `speak()` is async and
+  throws `TtsError` on failure — callers (`PlayButton`, Settings' "Test" button) must surface the
+  error, never swallow it or silently fall back to the browser voice. VOICEVOX's default engine CORS
+  policy blocks cross-origin browser requests unless it's started with `--cors_policy_mode all` (or
+  `--allow_origin <origin>`) — see the README's VOICEVOX section.
 - Sentences have no `romaji` field (only vocab needs one, as a typing reference) — don't add it back.
 - The Anthropic API key and `ja-JP` voice preference (`src/lib/settings.ts`) live only in
   `localStorage` — never sent anywhere but directly to Anthropic's API from the browser, and never
