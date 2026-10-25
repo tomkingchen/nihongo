@@ -55,37 +55,35 @@ If the engine isn't running or isn't reachable (wrong port, CORS blocked, etc.),
 Settings "Test" button show a clear error instead of silently falling back to the browser voice —
 switch back to "Browser (default)" in Settings if you don't want to run VOICEVOX.
 
-## Running on a home server (Docker)
+## Deploying to the LAN VM (Docker)
 
-You can run this app and a VOICEVOX engine as containers on a home server (e.g. a NAS or spare
-machine on your LAN), reachable from any device on the network — no internet exposure, no
-authentication needed.
+The app and a VOICEVOX engine run as containers on the VM at `10.1.1.81`, reachable from any device
+on the LAN — no internet exposure, no authentication.
 
 ```bash
-docker compose up -d --build
+scripts/deploy.sh
 ```
 
-This starts two containers:
+This needs key-based `ssh tom@10.1.1.81` and Docker with the compose plugin on the VM. It syncs the
+git-tracked files to `~/nihongo` on the VM and runs `docker compose up -d --build` there. Override the
+target with `DEPLOY_HOST=user@host` and `DEPLOY_DIR=dirname` (relative to the remote home).
 
-- `app` — the built static site, served by nginx, mapped to `http://<server>:8080`.
-- `voicevox` — the VOICEVOX engine, mapped to `http://<server>:50021`, already started with
+The compose file starts two containers:
+
+- `app` — the built static site, served by nginx at `http://10.1.1.81:8080`.
+- `voicevox` — the VOICEVOX engine at `http://10.1.1.81:50021`, started with
   `--cors_policy_mode all` so any device's browser can call it.
 
-**Find your server's LAN address** — its hostname (e.g. `myserver.local` if mDNS/Bonjour is
-available) or LAN IP (`ip addr` / `ifconfig` on the server). From any other device on the same
-network, open `http://<server-hostname-or-ip>:8080`.
+**Important — VOICEVOX URL must point at the VM, not `localhost`.** On every device that opens the
+app, if you enable VOICEVOX in Settings, set the engine URL to `http://10.1.1.81:50021` — never
+`127.0.0.1` or `localhost`. Each device's browser resolves `localhost` to itself, so it would
+silently fail to reach the engine.
 
-**Important — VOICEVOX URL must point at the server, not `localhost`.** On every device that opens
-the app, if you enable VOICEVOX in Settings, set the engine URL to the *server's* LAN address, e.g.
-`http://<server-hostname-or-ip>:50021` — never `127.0.0.1` or `localhost`. Each device's browser
-resolves `localhost` to itself, not the server, so a laptop or phone pointed at `localhost:50021`
-will silently fail to reach the engine even though it works fine on the server itself.
+**Each device keeps its own flashcard data.** This is a browser-storage (IndexedDB) app with no
+shared backend — each phone, tablet, or laptop has an independent vocab/sentence list. This is by
+design, not a bug.
 
-**Each device keeps its own flashcard data.** This is still a browser-storage (IndexedDB) app with
-no shared backend — a phone, tablet, or laptop that opens the app each has an independent
-vocab/sentence list. This is by design, not a bug.
-
-To stop the containers: `docker compose down`.
+To stop the containers: `ssh tom@10.1.1.81 'cd nihongo && docker compose down'`.
 
 ## Getting started
 
