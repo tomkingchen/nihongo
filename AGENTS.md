@@ -29,6 +29,11 @@ Dexie schema lives in `src/db/schema.ts`.
   request shape, or pricing assumptions there — don't rely on training-data memory for those.
 - JSON export/import (`src/db/exportImport.ts`) is additive on import — it never clears existing
   `vocab`/`sentences` rows first.
+- Deploy: `scripts/deploy.sh` ships git-tracked files to `tomo@10.1.1.81:~/nihongo` and runs
+  `docker compose up -d --build` (LAN-only; see the README's "Deploying to the LAN VM" section).
+  Only tracked files are shipped, so `git add` new files first. The `voicevox`
+  compose service's `command:` must be the FULL command (not just extra flags): the image's default
+  `CMD` is completely replaced if you pass any args after the image name.
 
 ## Maintaining this file
 

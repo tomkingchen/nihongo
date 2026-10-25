@@ -55,6 +55,36 @@ If the engine isn't running or isn't reachable (wrong port, CORS blocked, etc.),
 Settings "Test" button show a clear error instead of silently falling back to the browser voice —
 switch back to "Browser (default)" in Settings if you don't want to run VOICEVOX.
 
+## Deploying to the LAN VM (Docker)
+
+The app and a VOICEVOX engine run as containers on the VM at `10.1.1.81`, reachable from any device
+on the LAN — no internet exposure, no authentication.
+
+```bash
+scripts/deploy.sh
+```
+
+This needs key-based `ssh tomo@10.1.1.81` and Docker with the compose plugin on the VM. It syncs the
+git-tracked files to `~/nihongo` on the VM and runs `docker compose up -d --build` there. Override the
+target with `DEPLOY_HOST=user@host` and `DEPLOY_DIR=dirname` (relative to the remote home).
+
+The compose file starts two containers:
+
+- `app` — the built static site, served by nginx at `http://10.1.1.81:8080`.
+- `voicevox` — the VOICEVOX engine at `http://10.1.1.81:50021`, started with
+  `--cors_policy_mode all` so any device's browser can call it.
+
+**Important — VOICEVOX URL must point at the VM, not `localhost`.** On every device that opens the
+app, if you enable VOICEVOX in Settings, set the engine URL to `http://10.1.1.81:50021` — never
+`127.0.0.1` or `localhost`. Each device's browser resolves `localhost` to itself, so it would
+silently fail to reach the engine.
+
+**Each device keeps its own flashcard data.** This is a browser-storage (IndexedDB) app with no
+shared backend — each phone, tablet, or laptop has an independent vocab/sentence list. This is by
+design, not a bug.
+
+To stop the containers: `ssh tomo@10.1.1.81 'cd nihongo && docker compose down'`.
+
 ## Getting started
 
 ```bash
