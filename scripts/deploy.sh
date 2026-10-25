@@ -3,7 +3,7 @@
 # Override with DEPLOY_HOST (user@host) and DEPLOY_DIR (remote dir, relative to $HOME).
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-tom@10.1.1.81}"
+HOST="${DEPLOY_HOST:-tomo@10.1.1.81}"
 DIR="${DEPLOY_DIR:-nihongo}"
 ADDR="${HOST#*@}"
 

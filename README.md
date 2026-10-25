@@ -64,7 +64,7 @@ on the LAN — no internet exposure, no authentication.
 scripts/deploy.sh
 ```
 
-This needs key-based `ssh tom@10.1.1.81` and Docker with the compose plugin on the VM. It syncs the
+This needs key-based `ssh tomo@10.1.1.81` and Docker with the compose plugin on the VM. It syncs the
 git-tracked files to `~/nihongo` on the VM and runs `docker compose up -d --build` there. Override the
 target with `DEPLOY_HOST=user@host` and `DEPLOY_DIR=dirname` (relative to the remote home).
 
@@ -83,7 +83,7 @@ silently fail to reach the engine.
 shared backend — each phone, tablet, or laptop has an independent vocab/sentence list. This is by
 design, not a bug.
 
-To stop the containers: `ssh tom@10.1.1.81 'cd nihongo && docker compose down'`.
+To stop the containers: `ssh tomo@10.1.1.81 'cd nihongo && docker compose down'`.
 
 ## Getting started
 
